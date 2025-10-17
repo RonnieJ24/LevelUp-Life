@@ -416,6 +416,8 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to capture photos for avatar creation in Ready Player Me.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app may use the microphone for avatar creation features.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -448,6 +450,8 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to capture photos for avatar creation in Ready Player Me.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app may use the microphone for avatar creation features.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -604,7 +608,7 @@
 			repositoryURL = "https://github.com/warrenm/GLTFKit2.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.5.0;
+				minimumVersion = "0.5.0";
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

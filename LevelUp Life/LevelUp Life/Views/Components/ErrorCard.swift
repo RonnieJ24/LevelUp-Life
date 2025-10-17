@@ -106,4 +106,3 @@ struct ErrorCard: View {
     )
     .background(Color(.systemGroupedBackground))
 }
-

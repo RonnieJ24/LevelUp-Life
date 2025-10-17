@@ -1,77 +1,37 @@
 import SwiftUI
 import Combine
 
-/// GLTFKit2-based 3D Avatar Viewer - Avatar Workshop v1.1
+/// GLTFKit2-based 3D Avatar Viewer with robust error handling and status display
 struct Avatar3DView: View {
     @StateObject private var avatarService = AvatarService()
     @StateObject private var gameState = GameState.shared
     @State private var showCreator = false
     @State private var showDevTools = false
     @State private var avatarURL: URL?
-    
-    // Avatar Workshop settings
-    @State private var lightingPreset: String = "studio"
-    @State private var backgroundPreset: String = "black"
-    @State private var scaleMultiplier: Float = 1.0
+    @State private var showErrorCard = false
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 // 3D Scene View
                 if let url = avatarURL {
-                    GLTFKit2AvatarViewWrapper(
-                        avatarURL: url,
-                        lightingPreset: $lightingPreset,
-                        backgroundPreset: $backgroundPreset,
-                        scaleMultiplier: $scaleMultiplier
-                    )
+                    GLTFKit2AvatarViewWrapper(avatarURL: $avatarURL)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(Color.black)
                 } else if avatarService.isLoading {
-                    // Loading or empty state - NO FALLBACK AVATAR
-                    VStack(spacing: 20) {
-                        VStack(spacing: 16) {
-                            ProgressView("Loading Ready Player Me Avatar...")
-                                .progressViewStyle(CircularProgressViewStyle())
-                            
-                            Text("Downloading your custom avatar...")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(.systemBackground))
+                    // Loading state with spinner
+                    loadingView
+                } else if showErrorCard || avatarService.errorMessage != nil {
+                    // Error state with retry options
+                    errorView
                 } else {
                     // No Avatar State
-                    VStack(spacing: 24) {
-                        Spacer()
-                        
-                        Image(systemName: "person.circle.fill")
-                            .font(.system(size: 80))
-                            .foregroundColor(.gray)
-                        
-                        VStack(spacing: 12) {
-                            Text("No Avatar")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .foregroundColor(.primary)
-                            
-                            Text("Create your Ready Player Me avatar to get started")
-                                .font(.body)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        
-                        Button("Create Avatar") {
-                            showCreator = true
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
-                        
-                        Spacer()
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(.systemBackground))
+                    noAvatarView
+                }
+                
+                // Status Strip (Developer)
+                if gameState.developerMode {
+                    statusStrip
                 }
                 
                 // Action Controls
@@ -109,10 +69,143 @@ struct Avatar3DView: View {
         .onChange(of: gameState.avatarState.localGlbPath) { newPath in
             if let path = newPath {
                 avatarURL = URL(fileURLWithPath: path)
+                showErrorCard = false
             } else {
                 avatarURL = nil
             }
         }
+        .onChange(of: avatarService.errorMessage) { errorMessage in
+            showErrorCard = errorMessage != nil
+        }
+    }
+    
+    // MARK: - Loading View
+    
+    private var loadingView: some View {
+        VStack(spacing: 20) {
+            Spacer()
+            
+            VStack(spacing: 16) {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                    .scaleEffect(1.2)
+                
+                Text("Loading Ready Player Me Avatar...")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                
+                Text("Downloading your custom avatar...")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemBackground))
+    }
+    
+    // MARK: - Error View
+    
+    private var errorView: some View {
+        VStack(spacing: 24) {
+            Spacer()
+            
+            VStack(spacing: 16) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 60))
+                    .foregroundColor(.orange)
+                
+                VStack(spacing: 8) {
+                    Text("Avatar Load Failed")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                    
+                    if let errorMessage = avatarService.errorMessage {
+                        Text(errorMessage)
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
+                }
+            }
+            
+            VStack(spacing: 12) {
+                Button("Retry Load") {
+                    loadCurrentAvatar()
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                
+                Button("Create New Avatar") {
+                    showCreator = true
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+            }
+            
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemBackground))
+    }
+    
+    // MARK: - No Avatar View
+    
+    private var noAvatarView: some View {
+        VStack(spacing: 24) {
+            Spacer()
+            
+            Image(systemName: "person.circle.fill")
+                .font(.system(size: 80))
+                .foregroundColor(.gray)
+            
+            VStack(spacing: 12) {
+                Text("No Avatar")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                
+                Text("Create your Ready Player Me avatar to get started")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            
+            Button("Create Avatar") {
+                showCreator = true
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemBackground))
+    }
+    
+    // MARK: - Status Strip
+    
+    private var statusStrip: some View {
+        HStack {
+            Text(avatarService.gltfKit2Status.displayText)
+                .font(.caption)
+                .foregroundColor(avatarService.gltfKit2Status.color)
+            
+            Spacer()
+            
+            if let avatarId = gameState.avatarState.avatarId {
+                Text("ID: \(String(avatarId.prefix(8)))...")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(Color(.systemGray6))
     }
     
     // MARK: - Action Controls

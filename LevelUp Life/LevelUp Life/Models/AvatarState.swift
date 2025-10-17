@@ -1,6 +1,5 @@
 import Foundation
 import SwiftUI
-import simd
 
 /// Avatar loader types
 enum AvatarLoaderKind: String, Codable {
@@ -17,12 +16,6 @@ struct AvatarState: Codable {
     var lastPreviewImagePath: String?
     var emotion: AvatarEmotion = .neutral
     var lastUpdated: Date = Date()
-    
-    // Avatar Workshop v1.1 - Viewer Settings
-    var cameraOrbit: SIMD3<Float> = SIMD3<Float>(0, 0, 0) // yaw, pitch, radius
-    var lightingPreset: String = "studio"
-    var backgroundPreset: String = "black"
-    var scaleMultiplier: Float = 1.0
     
     /// Check if avatar is loaded
     var isLoaded: Bool {

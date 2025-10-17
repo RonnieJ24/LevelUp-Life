@@ -15,7 +15,15 @@ struct ReadyPlayerMeConfig {
     
     /// Avatar Creator URL with Frame API (required for postMessage events)
     /// Frame API enables communication between WebView and native app
-    static let creatorURL = "https://\(RPM_SUBDOMAIN).readyplayer.me/avatar?frameApi&quality=high"
+    static func creatorURL(withCacheBuster: Bool = true) -> String {
+        // Try the simplest Ready Player Me URL format first
+        let baseURL = "https://readyplayer.me/avatar"
+        if withCacheBuster {
+            let timestamp = Int(Date().timeIntervalSince1970)
+            return "\(baseURL)?t=\(timestamp)"
+        }
+        return baseURL
+    }
     
     // MARK: - API Endpoints
     /// Get 3D avatar model (GLB format)
@@ -36,6 +44,7 @@ struct ReadyPlayerMeConfig {
         static let sceneReady = "v1.scene.ready"
         static let userSet = "v1.user.set"
         static let avatarExported = "v1.avatar.exported"
+        static let avatarExportedNew = "v1.avatar.exportedNew"
     }
     
     // MARK: - Cache Configuration

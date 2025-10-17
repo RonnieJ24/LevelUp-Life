@@ -74,10 +74,6 @@ class HapticManager {
         impact(.light)
     }
     
-    func lightTap() {
-        impact(.light)
-    }
-    
     func streakIncrement() {
         notification(.success)
         impact(.medium)

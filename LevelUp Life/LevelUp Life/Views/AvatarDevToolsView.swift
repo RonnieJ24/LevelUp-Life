@@ -46,10 +46,18 @@ struct AvatarDevToolsView: View {
                 
                 Section("Cache Management") {
                     Button("Clear Avatar Cache") {
-                        // Clear cache functionality
+                        avatarService.clearAvatarCache()
                         print("✅ Avatar cache cleared")
                     }
                     .foregroundColor(.red)
+                    
+                    Button("Clear RPM Cookies") {
+                        Task {
+                            await avatarService.clearRPMCookies()
+                            print("✅ RPM cookies cleared")
+                        }
+                    }
+                    .foregroundColor(.orange)
                     
                     Button("Show Last File Info") {
                         showFileInfo = true
@@ -133,8 +141,10 @@ struct AvatarDevToolsView: View {
     
     private func loadDemoAvatar() {
         Task {
-            await avatarService.loadAvatar(avatarId: "demo_avatar_123")
-            print("✅ Demo avatar loading initiated")
+            // Use a known good test avatar ID
+            let testAvatarId = "68f063c6e831796787e0ccc1"
+            print("🧪 Test: Set test avatar ID: \(testAvatarId)")
+            await avatarService.loadAvatar(avatarId: testAvatarId)
         }
     }
     

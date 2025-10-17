@@ -33,7 +33,7 @@ struct RPMAvatarDevToolsView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Avatar Workshop v1.1")
+            .navigationTitle("GLTFKit2 Dev Tools")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -50,49 +50,36 @@ struct RPMAvatarDevToolsView: View {
         }
     }
     
-    // MARK: - Creator Tools Section
+    // MARK: - Sections
     
     private var creatorToolsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Creator Tools")
                 .font(.headline)
                 .fontWeight(.bold)
             
-            VStack(spacing: 12) {
-                Button("Open Ready Player Me Creator") {
-                    showAlert(message: "Creator would open here")
-                }
-                .buttonStyle(.borderedProminent)
-                
-                Button("Test Export Flow") {
-                    showAlert(message: "Export flow test triggered")
-                }
-                .buttonStyle(.bordered)
+            Button("Open Creator") {
+                openCreator()
             }
+            .buttonStyle(.borderedProminent)
+            .frame(maxWidth: .infinity)
         }
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
     }
     
-    // MARK: - Manual Testing Section
-    
     private var manualTestingSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Manual Avatar Testing")
                 .font(.headline)
                 .fontWeight(.bold)
             
-            VStack(spacing: 12) {
-                HStack {
-                    TextField("Avatar ID", text: $manualAvatarId)
-                        .textFieldStyle(.roundedBorder)
-                    
-                    Button("Load") {
-                        loadManualAvatar()
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
+            VStack(spacing: 8) {
+                TextField("Avatar ID", text: $manualAvatarId)
+                    .textFieldStyle(.roundedBorder)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
                 
                 Button("✅ Known-Good ID (68f063c6e831796787e0ccc1)") {
                     manualAvatarId = "68f063c6e831796787e0ccc1"
@@ -107,6 +94,12 @@ struct RPMAvatarDevToolsView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .font(.caption)
+                
+                Button("Load Avatar") {
+                    loadManualAvatar()
+                }
+                .buttonStyle(.borderedProminent)
+                .frame(maxWidth: .infinity)
             }
         }
         .padding()
@@ -114,49 +107,55 @@ struct RPMAvatarDevToolsView: View {
         .cornerRadius(12)
     }
     
-    // MARK: - Settings Section
-    
     private var settingsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Settings")
                 .font(.headline)
                 .fontWeight(.bold)
             
-            VStack(spacing: 12) {
-                Toggle("Verbose Telemetry", isOn: $avatarService.verboseTelemetry)
-                    .toggleStyle(SwitchToggleStyle())
-            }
+            Toggle("Verbose Telemetry", isOn: Binding(
+                get: { avatarService.verboseTelemetry },
+                set: { avatarService.verboseTelemetry = $0 }
+            ))
         }
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
     }
     
-    // MARK: - Cache Management Section
-    
     private var cacheManagementSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Cache Management")
                 .font(.headline)
                 .fontWeight(.bold)
             
-            VStack(spacing: 12) {
+            VStack(spacing: 8) {
                 Button("Clear Avatar Cache") {
-                    avatarService.clearAvatarCache()
-                    showAlert(message: "Avatar cache cleared")
+                    clearCache()
                 }
                 .buttonStyle(.bordered)
+                .frame(maxWidth: .infinity)
                 
-                if let cacheInfo = avatarService.getLastCachedAvatarInfo() {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Last Cached:")
+                if let avatarId = gameState.avatarState.avatarId {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Current Avatar ID: \(avatarId)")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        Text("Path: \(cacheInfo.path)")
+                        
+                        Text("GLB URL: https://models.readyplayer.me/\(avatarId).glb")
                             .font(.caption)
-                        Text("Size: \(cacheInfo.size) bytes")
-                            .font(.caption)
+                            .foregroundColor(.primary)
+                            .lineLimit(2)
+                        
+                        if let localPath = gameState.avatarState.localGlbPath {
+                            Text("Local Path: \(URL(fileURLWithPath: localPath).lastPathComponent)")
+                                .font(.caption)
+                                .foregroundColor(.primary)
+                        }
                     }
+                    .padding(8)
+                    .background(Color(.systemGray5))
+                    .cornerRadius(8)
                 }
             }
         }
@@ -165,27 +164,25 @@ struct RPMAvatarDevToolsView: View {
         .cornerRadius(12)
     }
     
-    // MARK: - Emotion Testing Section
-    
     private var emotionTestingSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Emotion Testing")
                 .font(.headline)
                 .fontWeight(.bold)
             
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 8) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 12) {
                 ForEach(AvatarEmotion.allCases, id: \.self) { emotion in
                     Button(action: {
-                        gameState.avatarState.emotion = emotion
-                        showAlert(message: "Set emotion to \(emotion.rawValue)")
+                        triggerEmotion(emotion)
                     }) {
-                        VStack {
+                        VStack(spacing: 4) {
                             Image(systemName: emotion.systemImageName)
                                 .font(.title2)
-                                .foregroundColor(emotion.moodColor)
                             Text(emotion.rawValue.capitalized)
                                 .font(.caption)
                         }
+                        .foregroundColor(emotion.moodColor)
+                        .frame(maxWidth: .infinity)
                         .padding(8)
                         .background(Color(.systemGray5))
                         .cornerRadius(8)
@@ -198,10 +195,8 @@ struct RPMAvatarDevToolsView: View {
         .cornerRadius(12)
     }
     
-    // MARK: - Status Section
-    
     private var statusSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Status Information")
                 .font(.headline)
                 .fontWeight(.bold)
@@ -211,7 +206,7 @@ struct RPMAvatarDevToolsView: View {
                 StatusRow(label: "Loading State", value: avatarService.isLoading ? "Loading..." : "Idle")
                 StatusRow(label: "Error State", value: avatarService.errorMessage ?? "None")
                 StatusRow(label: "Loader Used", value: "GLTFKit2")
-                StatusRow(label: "Avatar Workshop", value: "v1.1 Active")
+                StatusRow(label: "GLTFKit2 Status", value: "✅ Integrated")
             }
         }
         .padding()
@@ -219,18 +214,37 @@ struct RPMAvatarDevToolsView: View {
         .cornerRadius(12)
     }
     
-    // MARK: - Helper Methods
+    // MARK: - Actions
+    
+    private func openCreator() {
+        showAlert(message: "Creator will open in main view")
+    }
     
     private func loadManualAvatar() {
-        guard !manualAvatarId.isEmpty else {
-            showAlert(message: "Please enter an avatar ID")
-            return
-        }
-        
         Task {
             await avatarService.loadAvatar(avatarId: manualAvatarId)
         }
-        showAlert(message: "Loading avatar: \(manualAvatarId)")
+    }
+    
+    private func clearCache() {
+        avatarService.clearAvatarCache()
+        showAlert(message: "Avatar cache cleared")
+    }
+    
+    private func triggerEmotion(_ emotion: AvatarEmotion) {
+        gameState.avatarState.emotion = emotion
+        
+        // Trigger haptic feedback
+        switch emotion {
+        case .happy, .celebrate, .proud:
+            HapticManager.shared.notification(.success)
+        case .sad:
+            HapticManager.shared.notification(.error)
+        case .neutral:
+            HapticManager.shared.notification(.success)
+        }
+        
+        showAlert(message: "Triggered \(emotion.rawValue) emotion")
     }
     
     private func showAlert(message: String) {
@@ -239,7 +253,7 @@ struct RPMAvatarDevToolsView: View {
     }
 }
 
-// MARK: - Status Row Helper
+// MARK: - Supporting Views
 
 struct StatusRow: View {
     let label: String
