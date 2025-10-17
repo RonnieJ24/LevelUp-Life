@@ -8,6 +8,7 @@ class AvatarCreatorViewController: UIViewController {
     private var webView: WKWebView!
     private var onAvatarExported: ((String) -> Void)?
     private var onDismiss: (() -> Void)?
+    private var frameAPITimeout: Timer?
     
     // SwiftUI-compatible initializer
     convenience init(isPresented: Binding<Bool>, onAvatarExported: @escaping (String) -> Void) {
@@ -86,6 +87,12 @@ extension AvatarCreatorViewController: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         print("✅ RPM: Creator loaded successfully, injecting Frame API script...")
         
+        // Set up timeout for Frame API events
+        frameAPITimeout = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: false) { _ in
+            print("⏰ RPM: Frame API timeout - no events received in 30 seconds")
+            self.showTimeoutAlert()
+        }
+        
         // Only inject script once after full load - no reloads or recreations
         let script = """
         (function() {
@@ -117,6 +124,19 @@ extension AvatarCreatorViewController: WKNavigationDelegate {
             });
             
             console.log('✅ RPM: Message listener installed');
+            
+            // Send a test message to verify connection
+            setTimeout(function() {
+                try {
+                    window.webkit.messageHandlers.readyPlayerMe.postMessage({
+                        type: 'v1.frame.ready',
+                        data: { test: true }
+                    });
+                    console.log('✅ RPM: Test message sent');
+                } catch (e) {
+                    console.error('❌ RPM: Failed to send test message:', e);
+                }
+            }, 2000);
         })();
         """
         
@@ -162,6 +182,10 @@ extension AvatarCreatorViewController: WKScriptMessageHandler {
         }
         
         let data = body["data"] as? [String: Any] ?? [:]
+        
+        // Cancel timeout on any Frame API event
+        frameAPITimeout?.invalidate()
+        frameAPITimeout = nil
         
         switch type {
         case "v1.frame.ready":
@@ -224,6 +248,28 @@ extension AvatarCreatorViewController: WKScriptMessageHandler {
             self.dismiss(animated: true) {
                 self.onDismiss?()
             }
+        }
+    }
+    
+    private func showTimeoutAlert() {
+        DispatchQueue.main.async {
+            let alert = UIAlertController(
+                title: "Avatar Creator Timeout",
+                message: "The avatar creator didn't respond. This might be a network issue or the Ready Player Me service might be unavailable. Please try again.",
+                preferredStyle: .alert
+            )
+            
+            alert.addAction(UIAlertAction(title: "Retry", style: .default) { _ in
+                self.webView.reload()
+            })
+            
+            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+                self.dismiss(animated: true) {
+                    self.onDismiss?()
+                }
+            })
+            
+            self.present(alert, animated: true)
         }
     }
 }
