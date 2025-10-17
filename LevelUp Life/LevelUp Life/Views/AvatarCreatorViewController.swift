@@ -9,6 +9,15 @@ class AvatarCreatorViewController: UIViewController {
     private var onAvatarExported: ((String) -> Void)?
     private var onDismiss: (() -> Void)?
     
+    // SwiftUI-compatible initializer
+    convenience init(isPresented: Binding<Bool>, onAvatarExported: @escaping (String) -> Void) {
+        self.init()
+        self.onAvatarExported = onAvatarExported
+        self.onDismiss = {
+            isPresented.wrappedValue = false
+        }
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupWebView()
@@ -216,5 +225,20 @@ extension AvatarCreatorViewController: WKScriptMessageHandler {
                 self.onDismiss?()
             }
         }
+    }
+}
+
+// MARK: - SwiftUI Wrapper
+
+struct AvatarCreatorView: UIViewControllerRepresentable {
+    @Binding var isPresented: Bool
+    let onAvatarExported: (String) -> Void
+    
+    func makeUIViewController(context: Context) -> AvatarCreatorViewController {
+        return AvatarCreatorViewController(isPresented: $isPresented, onAvatarExported: onAvatarExported)
+    }
+    
+    func updateUIViewController(_ uiViewController: AvatarCreatorViewController, context: Context) {
+        // No updates needed
     }
 }
