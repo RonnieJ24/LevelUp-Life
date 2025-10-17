@@ -1,7 +1,7 @@
 import SwiftUI
 import Combine
 
-/// GLTFKit2-based RPM Avatar Screen
+/// GLTFKit2-based RPM Avatar Screen - Avatar Workshop v1.1
 struct RPMAvatarView: View {
     @StateObject private var avatarService = AvatarService()
     @StateObject private var gameState = GameState.shared
@@ -9,6 +9,11 @@ struct RPMAvatarView: View {
     @State private var showCreator = false
     @State private var showDevTools = false
     @State private var avatarURL: URL?
+    
+    // Avatar Workshop settings
+    @State private var lightingPreset: String = "studio"
+    @State private var backgroundPreset: String = "black"
+    @State private var scaleMultiplier: Float = 1.0
     
     var body: some View {
         NavigationView {
@@ -37,10 +42,40 @@ struct RPMAvatarView: View {
                         }
                     }
                 } else if let url = avatarURL {
-                    // Success State - GLTFKit2 Avatar
-                    GLTFKit2AvatarViewWrapper(avatarURL: $avatarURL)
+                    // Success State - GLTFKit2 Avatar with Workshop Controls
+                    ZStack {
+                        GLTFKit2AvatarViewWrapper(
+                            avatarURL: url,
+                            lightingPreset: $lightingPreset,
+                            backgroundPreset: $backgroundPreset,
+                            scaleMultiplier: $scaleMultiplier
+                        )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(Color.black)
+                        
+                        // Avatar Workshop Controls
+                        VStack {
+                            Spacer()
+                            AvatarWorkshopControls(
+                                lightingPreset: $lightingPreset,
+                                backgroundPreset: $backgroundPreset,
+                                scaleMultiplier: $scaleMultiplier,
+                                showDevTools: $showDevTools,
+                                onPresetChange: { preset in
+                                    gameState.avatarState.lightingPreset = preset
+                                },
+                                onBackgroundChange: { background in
+                                    gameState.avatarState.backgroundPreset = background
+                                },
+                                onScaleChange: { scale in
+                                    gameState.avatarState.scaleMultiplier = scale
+                                },
+                                onDevToolsToggle: {
+                                    showDevTools = true
+                                }
+                            )
+                        }
+                    }
                 } else if avatarService.isLoading {
                     // Loading State
                     VStack(spacing: 20) {
@@ -75,42 +110,32 @@ struct RPMAvatarView: View {
                                 .multilineTextAlignment(.center)
                         }
                         
-                        Button("Create Avatar") {
-                            openCreator()
+                        Button(action: {
+                            showCreator = true
+                        }) {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                Text("Create Avatar")
+                            }
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Color.blue)
+                            .cornerRadius(12)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
                         
                         Spacer()
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color(.systemBackground))
                 }
-                
-                // Action Controls (when avatar is loaded)
-                if avatarURL != nil {
-                    actionControls
-                }
-                
-                // Emotion Controls (when avatar is loaded)
-                if avatarURL != nil {
-                    emotionControls
-                }
             }
             .navigationTitle("Avatar")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    if gameState.developerMode {
-                        Button("Dev Tools") {
-                            showDevTools = true
-                        }
-                    }
-                }
-                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Customize") {
-                        openCreator()
+                        showCreator = true
                     }
                 }
             }
@@ -122,9 +147,11 @@ struct RPMAvatarView: View {
         }
         .sheet(isPresented: $showDevTools) {
             RPMAvatarDevToolsView()
+                .environmentObject(avatarService)
         }
         .onAppear {
             loadCurrentAvatar()
+            loadWorkshopSettings()
         }
         .onChange(of: gameState.avatarState.localGlbPath) { newPath in
             if let path = newPath {
@@ -135,110 +162,28 @@ struct RPMAvatarView: View {
         }
     }
     
-    // MARK: - Action Controls
-    
-    private var actionControls: some View {
-        HStack(spacing: 16) {
-            Button("Customize Avatar") {
-                openCreator()
-            }
-            .buttonStyle(.bordered)
-            
-            Button("Retry Load") {
-                retryLoad()
-            }
-            .buttonStyle(.bordered)
-        }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(radius: 2)
-        .padding(.horizontal)
-    }
-    
-    // MARK: - Emotion Controls
-    
-    private var emotionControls: some View {
-        HStack(spacing: 20) {
-            ForEach(AvatarEmotion.allCases, id: \.self) { emotion in
-                Button(action: {
-                    triggerEmotion(emotion)
-                }) {
-                    VStack(spacing: 4) {
-                        Image(systemName: emotion.systemImageName)
-                            .font(.title2)
-                        Text(emotion.rawValue.capitalized)
-                            .font(.caption)
-                    }
-                }
-                .foregroundColor(emotion.moodColor)
-            }
-        }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(radius: 2)
-        .padding(.horizontal)
-    }
-    
-    // MARK: - Avatar Loading Pipeline
+    // MARK: - Private Methods
     
     private func loadCurrentAvatar() {
-        guard let avatarId = gameState.avatarState.avatarId else {
-            print("🔍 RPM: No avatar ID - showing create CTA")
-            return
-        }
-        
-        print("🔍 RPM: Loading avatar with ID: \(avatarId)")
-        
-        Task {
-            await avatarService.loadAvatar(avatarId: avatarId)
-        }
-    }
-    
-    private func retryLoad() {
-        if let avatarId = gameState.avatarState.avatarId {
+        if let localPath = gameState.avatarState.localGlbPath {
+            avatarURL = URL(fileURLWithPath: localPath)
+        } else if let avatarId = gameState.avatarState.avatarId {
             Task {
                 await avatarService.loadAvatar(avatarId: avatarId)
             }
         }
     }
     
-    private func openCreator() {
-        showCreator = true
+    private func loadWorkshopSettings() {
+        lightingPreset = gameState.avatarState.lightingPreset
+        backgroundPreset = gameState.avatarState.backgroundPreset
+        scaleMultiplier = gameState.avatarState.scaleMultiplier
     }
     
     private func handleAvatarExported(avatarId: String) {
-        print("🎉 RPM: Avatar exported with ID: \(avatarId)")
-        
-        // Save avatar ID
-        gameState.avatarState.avatarId = avatarId
-        gameState.avatarState.lastUpdated = Date()
-        
-        // Start download
-        loadCurrentAvatar()
-    }
-    
-    private func triggerEmotion(_ emotion: AvatarEmotion) {
-        // Update GameState with emotion
-        GameState.shared.avatarState.emotion = emotion
-        
-        // Trigger haptic feedback
-        switch emotion {
-        case .happy:
-            HapticManager.shared.notification(.success)
-        case .celebrate:
-            HapticManager.shared.notification(.success)
-        case .proud:
-            HapticManager.shared.notification(.success)
-        case .sad:
-            HapticManager.shared.notification(.error)
-        case .neutral:
-            HapticManager.shared.notification(.success)
+        print("🎯 Avatar Workshop: Avatar exported with ID: \(avatarId)")
+        Task {
+            await avatarService.loadAvatar(avatarId: avatarId)
         }
     }
-}
-
-#Preview {
-    RPMAvatarView()
 }

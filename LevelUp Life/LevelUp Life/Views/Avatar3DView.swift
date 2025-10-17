@@ -1,7 +1,7 @@
 import SwiftUI
 import Combine
 
-/// GLTFKit2-based 3D Avatar Viewer
+/// GLTFKit2-based 3D Avatar Viewer - Avatar Workshop v1.1
 struct Avatar3DView: View {
     @StateObject private var avatarService = AvatarService()
     @StateObject private var gameState = GameState.shared
@@ -9,12 +9,22 @@ struct Avatar3DView: View {
     @State private var showDevTools = false
     @State private var avatarURL: URL?
     
+    // Avatar Workshop settings
+    @State private var lightingPreset: String = "studio"
+    @State private var backgroundPreset: String = "black"
+    @State private var scaleMultiplier: Float = 1.0
+    
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 // 3D Scene View
                 if let url = avatarURL {
-                    GLTFKit2AvatarViewWrapper(avatarURL: $avatarURL)
+                    GLTFKit2AvatarViewWrapper(
+                        avatarURL: url,
+                        lightingPreset: $lightingPreset,
+                        backgroundPreset: $backgroundPreset,
+                        scaleMultiplier: $scaleMultiplier
+                    )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(Color.black)
                 } else if avatarService.isLoading {
